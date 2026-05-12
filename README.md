@@ -41,7 +41,7 @@ ddpm-pytorch/
 Requires **Python 3.14+** and **`uv`** (https://docs.astral.sh/uv/).
 
 ```bash
-git clone https://github.com/<you>/ddpm-pytorch.git
+git clone https://github.com/Nestallum/ddpm-pytorch.git
 cd ddpm-pytorch
 uv sync --extra dev
 ```
