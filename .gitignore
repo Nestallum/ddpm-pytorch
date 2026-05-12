@@ -59,6 +59,7 @@ coverage.xml
 # Project-specific: data, checkpoints, logs, generated samples
 # -----------------------------------------------------------------------------
 data/                # raw datasets (FashionMNIST, CIFAR-10, ...)
+**/data/
 checkpoints/         # model weights, EMA snapshots
 runs/                # TensorBoard logs
 logs/                # text logs
