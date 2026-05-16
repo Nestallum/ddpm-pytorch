@@ -78,6 +78,9 @@ outputs/
 # Weights & Biases (if added later)
 wandb/
 
+# Pretrained model caches downloaded by torchmetrics / torch-fidelity
+/*.pt
+
 # -----------------------------------------------------------------------------
 # Misc
 # -----------------------------------------------------------------------------
