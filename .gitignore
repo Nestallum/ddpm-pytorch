@@ -58,13 +58,25 @@ coverage.xml
 # -----------------------------------------------------------------------------
 # Project-specific: data, checkpoints, logs, generated samples
 # -----------------------------------------------------------------------------
+
+# Raw datasets (downloaded by torchvision)
 /data/
 /notebooks/data/
-checkpoints/         # model weights, EMA snapshots
-runs/                # TensorBoard logs
-logs/                # text logs
-outputs/             # generated samples, FID statistics
-wandb/               # (if W&B is added later)
+
+# Model weights, EMA snapshots
+checkpoints/
+
+# TensorBoard logs
+runs/
+
+# Text logs
+logs/
+
+# Generated samples, FID statistics
+outputs/
+
+# Weights & Biases (if added later)
+wandb/
 
 # -----------------------------------------------------------------------------
 # Misc
