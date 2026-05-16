@@ -1,0 +1,17 @@
+# -----------------------------------------------------------------------------
+# FashionMNIST-specific overrides.
+# Inherits everything else from base.yaml.
+# -----------------------------------------------------------------------------
+
+data:
+  name: fashion_mnist
+  image_size: 28
+  batch_size: 128
+
+model:
+  in_channels: 1
+  base_channels: 64
+  channel_mults: [1, 2, 4]
+
+training:
+  total_steps: 30000

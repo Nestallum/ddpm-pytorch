@@ -1,0 +1,70 @@
+# -----------------------------------------------------------------------------
+# Base configuration for DDPM training.
+# Dataset-specific configs (e.g. fashion_mnist.yaml) override only what differs.
+# -----------------------------------------------------------------------------
+
+seed: 42
+deterministic: false  # set to true for bit-exact reproducibility (slower)
+
+# -----------------------------------------------------------------------------
+# Data
+# -----------------------------------------------------------------------------
+data:
+  name: fashion_mnist        # one of: fashion_mnist, cifar10
+  root: data
+  image_size: 28
+  batch_size: 128
+  num_workers: 4
+
+# -----------------------------------------------------------------------------
+# Model (UNet)
+# -----------------------------------------------------------------------------
+model:
+  in_channels: 1
+  base_channels: 64
+  channel_mults: [1, 2, 4]
+  num_res_blocks: 2
+  time_emb_dim: 256
+  num_groups: 8
+
+# -----------------------------------------------------------------------------
+# Diffusion process
+# -----------------------------------------------------------------------------
+diffusion:
+  num_timesteps: 1000
+  schedule: cosine          # one of: linear, cosine
+  prediction_type: epsilon
+
+# -----------------------------------------------------------------------------
+# Optimization
+# -----------------------------------------------------------------------------
+optim:
+  lr: 2.0e-4
+  betas: [0.9, 0.999]
+  weight_decay: 0.0
+
+# -----------------------------------------------------------------------------
+# EMA
+# -----------------------------------------------------------------------------
+ema:
+  beta: 0.9999
+  update_after_step: 500
+  update_every: 1
+
+# -----------------------------------------------------------------------------
+# Training loop
+# -----------------------------------------------------------------------------
+training:
+  total_steps: 30000
+  grad_clip: 1.0
+  log_every: 50
+  sample_every: 2000
+  ckpt_every: 5000
+
+# -----------------------------------------------------------------------------
+# Sampling (for training previews and final generation)
+# -----------------------------------------------------------------------------
+sampling:
+  n_preview: 16              # number of preview samples logged during training
+  preview_steps: 50          # DDIM steps for previews (fast)
+  final_steps: 1000          # DDPM steps for final evaluation
