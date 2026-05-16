@@ -14,10 +14,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 
 DatasetName = Literal["fashion_mnist", "cifar10"]
+
+
+def _scale_to_neg_one_one(x: Tensor) -> Tensor:
+    """Map a tensor from [0, 1] to [-1, 1].
+
+    Defined at module level (not as a lambda) so that DataLoader workers
+    can pickle the transform on Windows / Python 3.14+.
+    """
+    return 2.0 * x - 1.0
 
 
 def _build_transform() -> transforms.Compose:
@@ -28,8 +38,8 @@ def _build_transform() -> transforms.Compose:
     """
     return transforms.Compose(
         [
-            transforms.ToTensor(),  # uint8 [0, 255] -> float [0, 1]
-            transforms.Lambda(lambda x: 2 * x - 1),  # [0, 1] -> [-1, 1]
+            transforms.ToTensor(),               # uint8 [0, 255] -> float [0, 1]
+            transforms.Lambda(_scale_to_neg_one_one),   # [0, 1] -> [-1, 1]
         ]
     )
 
