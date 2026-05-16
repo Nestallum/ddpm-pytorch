@@ -26,6 +26,7 @@ dependencies = [
     "clean-fid>=0.1.35",
     "scipy>=1.14",
     "matplotlib>=3.9",
+    "torchmetrics>=1.9.0",
 ]
 
 [project.optional-dependencies]
