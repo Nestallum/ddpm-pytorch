@@ -38,9 +38,7 @@ def linear_beta_schedule(
     if num_timesteps <= 0:
         raise ValueError(f"num_timesteps must be positive, got {num_timesteps}")
     if not 0.0 < beta_start < beta_end < 1.0:
-        raise ValueError(
-            f"Expected 0 < beta_start < beta_end < 1, got ({beta_start}, {beta_end})"
-        )
+        raise ValueError(f"Expected 0 < beta_start < beta_end < 1, got ({beta_start}, {beta_end})")
 
     return torch.linspace(beta_start, beta_end, num_timesteps, dtype=torch.float64)
 
