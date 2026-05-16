@@ -149,10 +149,7 @@ class UNet(nn.Module):
         x = self.init_conv(x)
         skips = [x]
         for block in self.down_blocks:
-            if isinstance(block, ResidualBlock):
-                x = block(x, t_emb)
-            else:
-                x = block(x)
+            x = block(x, t_emb) if isinstance(block, ResidualBlock) else block(x)
             skips.append(x)
 
         # Bottleneck.
