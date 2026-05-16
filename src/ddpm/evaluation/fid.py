@@ -24,7 +24,7 @@ def compute_fid(
     real_dir: str | Path,
     fake_dir: str | Path,
     mode: str = "clean",
-    num_workers: int = 4,
+    num_workers: int = 0,
     batch_size: int = 64,
 ) -> float:
     """Compute FID between two directories of images.
@@ -38,7 +38,11 @@ def compute_fid(
     mode : str, optional
         clean-fid mode. ``"clean"`` is the recommended modern setting.
     num_workers : int, optional
-        DataLoader workers for image preprocessing.
+        DataLoader workers for image preprocessing. Set to 0 by default
+        because clean-fid internally uses lambda functions that cannot be
+        pickled under Python 3.14+ on Windows. Single-worker is fine here
+        since the bottleneck is the InceptionV3 forward pass on GPU, not
+        image loading.
     batch_size : int, optional
         Batch size for the InceptionV3 forward passes.
 
