@@ -1,7 +1,7 @@
 [project]
 name = "ddpm"
 version = "0.1.0"
-description = "Denoising Diffusion Probabilistic Models from scratch in PyTorch."
+description = "DDPM and DDIM samplers from scratch in PyTorch, trained on FashionMNIST for generative image modeling."
 readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "MIT" }
