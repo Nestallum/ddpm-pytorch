@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch
@@ -36,11 +37,32 @@ from ddpm.utils.seed import set_seed
 log = get_logger()
 
 
-# Mapping from sampler key (CLI-friendly) to (algorithm, steps).
-SAMPLER_CONFIGS = {
-    "ddim50": ("ddim", 50, 0.0),
-    "ddim250": ("ddim", 250, 1.0),  # eta=1 to avoid deterministic drift
-    "ddpm1000": ("ddpm", 1000, 0.0),
+@dataclass(frozen=True)
+class SamplerConfig:
+    """Configuration for one evaluation sampler.
+
+    Attributes
+    ----------
+    algorithm : str
+        Either "ddim" or "ddpm".
+    steps : int
+        Number of denoising steps.
+    eta : float, optional
+        Stochasticity factor for DDIM (0 = deterministic, 1 = DDPM-equivalent
+        variance). Must be ``None`` for DDPM, where stochasticity is intrinsic.
+    """
+
+    algorithm: str
+    steps: int
+    eta: float | None = None
+
+
+# Maps CLI-friendly sampler keys to their configuration. The keys are what
+# users pass to ``--samplers``; the values fully specify how to run the
+# corresponding sampling algorithm.
+SAMPLER_CONFIGS: dict[str, SamplerConfig] = {
+    "ddim50": SamplerConfig(algorithm="ddim", steps=50, eta=0.0),
+    "ddpm1000": SamplerConfig(algorithm="ddpm", steps=1000),
 }
 
 
@@ -86,7 +108,7 @@ def generate_samples(
     device: torch.device,
     sampler: str,
     steps: int,
-    eta: float,
+    eta: float | None,
     num_samples: int,
     batch_size: int,
     output_dir: Path,
@@ -104,10 +126,19 @@ def generate_samples(
         shape = (batch, cfg.model.in_channels, cfg.data.image_size, cfg.data.image_size)
 
         if sampler == "ddpm":
+            # eta is N/A for DDPM: stochasticity is built into the posterior.
             samples = diffusion.p_sample_loop(model, shape=shape, device=device)
         else:
+            if eta is None:
+                raise ValueError(
+                    f"DDIM requires an explicit eta value, got None (sampler={sampler})"
+                )
             samples = diffusion.ddim_sample(
-                model, shape=shape, num_inference_steps=steps, eta=eta, device=device
+                model,
+                shape=shape,
+                num_inference_steps=steps,
+                eta=eta,
+                device=device,
             )
 
         samples = (samples.clamp(-1.0, 1.0) + 1.0) / 2.0
@@ -158,7 +189,7 @@ def main() -> None:
     # 4. For each sampler: generate -> FID -> IS.
     results: dict[str, dict[str, float]] = {}
     for sampler_key in args.samplers:
-        sampler, steps, eta = SAMPLER_CONFIGS[sampler_key]
+        sampler_cfg = SAMPLER_CONFIGS[sampler_key]
         fake_dir = eval_dir / f"samples_{sampler_key}"
 
         generate_samples(
@@ -166,9 +197,9 @@ def main() -> None:
             diffusion,
             cfg,
             device,
-            sampler=sampler,
-            steps=steps,
-            eta=eta,
+            sampler=sampler_cfg.algorithm,
+            steps=sampler_cfg.steps,
+            eta=sampler_cfg.eta,
             num_samples=args.num_samples,
             batch_size=args.batch_size,
             output_dir=fake_dir,
