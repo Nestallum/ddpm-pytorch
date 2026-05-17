@@ -38,9 +38,9 @@ log = get_logger()
 
 # Mapping from sampler key (CLI-friendly) to (algorithm, steps).
 SAMPLER_CONFIGS = {
-    "ddim50": ("ddim", 50),
-    "ddim250": ("ddim", 250),
-    "ddpm1000": ("ddpm", 1000),
+    "ddim50": ("ddim", 50, 0.0),
+    "ddim250": ("ddim", 250, 1.0),  # eta=1 to avoid deterministic drift
+    "ddpm1000": ("ddpm", 1000, 0.0),
 }
 
 
@@ -86,6 +86,7 @@ def generate_samples(
     device: torch.device,
     sampler: str,
     steps: int,
+    eta: float,
     num_samples: int,
     batch_size: int,
     output_dir: Path,
@@ -106,7 +107,7 @@ def generate_samples(
             samples = diffusion.p_sample_loop(model, shape=shape, device=device)
         else:
             samples = diffusion.ddim_sample(
-                model, shape=shape, num_inference_steps=steps, device=device
+                model, shape=shape, num_inference_steps=steps, eta=eta, device=device
             )
 
         samples = (samples.clamp(-1.0, 1.0) + 1.0) / 2.0
@@ -157,7 +158,7 @@ def main() -> None:
     # 4. For each sampler: generate -> FID -> IS.
     results: dict[str, dict[str, float]] = {}
     for sampler_key in args.samplers:
-        sampler, steps = SAMPLER_CONFIGS[sampler_key]
+        sampler, steps, eta = SAMPLER_CONFIGS[sampler_key]
         fake_dir = eval_dir / f"samples_{sampler_key}"
 
         generate_samples(
@@ -167,6 +168,7 @@ def main() -> None:
             device,
             sampler=sampler,
             steps=steps,
+            eta=eta,
             num_samples=args.num_samples,
             batch_size=args.batch_size,
             output_dir=fake_dir,

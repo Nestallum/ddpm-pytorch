@@ -265,8 +265,15 @@ class GaussianDiffusion(nn.Module):
             Number of denoising steps. Less than ``num_timesteps`` for
             accelerated sampling. Defaults to 50.
         eta : float, optional
-            Controls stochasticity. ``eta=0`` is deterministic DDIM (default),
-            ``eta=1`` recovers DDPM-equivalent variance.
+            Controls stochasticity. ``eta=0`` is deterministic DDIM
+            (default and canonical), ``eta=1`` recovers DDPM-equivalent
+            variance.
+
+            Note: with deterministic DDIM (eta=0), small models can
+            exhibit drift toward the [-1, 1] boundary on long trajectories
+            (e.g. 250+ steps), since prediction errors accumulate without
+            stochastic decorrelation. If samples appear over-saturated,
+            try eta=0.5 to 1.0, or use fewer steps (50 is usually optimal).
         device : torch.device or str
             Device on which to allocate the samples.
         clip_denoised : bool, optional
@@ -283,35 +290,34 @@ class GaussianDiffusion(nn.Module):
                 f"num_timesteps ({self.num_timesteps})"
             )
 
-        # Build the subsequence of timesteps to visit, evenly spaced.
+        # Build DDIM timestep grid. Convention from diffusers / guided-diffusion:
+        # evenly-spaced indices from 0 to T-1 inclusive, then reversed so we
+        # iterate from t=T-1 down to t=0. The "previous" alpha_bar at the last
+        # step (t=0) is the virtual alpha_bar_{-1} = 1.0.
         step_indices = torch.linspace(
-            self.num_timesteps - 1, 0, num_inference_steps, dtype=torch.long, device=device
-        )
+            0, self.num_timesteps - 1, num_inference_steps, device=device
+        ).round().long().flip(0)
 
         x = torch.randn(shape, device=device)
         for i in range(num_inference_steps):
             t = torch.full((shape[0],), step_indices[i].item(), device=device, dtype=torch.long)
-            t_prev = (
-                torch.full((shape[0],), step_indices[i + 1].item(), device=device, dtype=torch.long)
-                if i < num_inference_steps - 1
-                else None
-            )
 
-            # 1. Predict noise and x_0.
+            ab_t = _extract(self.alphas_cumprod, t, x.shape)
+            if i < num_inference_steps - 1:
+                t_prev = torch.full(
+                    (shape[0],), step_indices[i + 1].item(), device=device, dtype=torch.long
+                )
+                ab_prev = _extract(self.alphas_cumprod, t_prev, x.shape)
+            else:
+                ab_prev = torch.ones_like(ab_t)
+
+            # 1. Predict noise and recover x_0 estimate.
             eps = model(x, t)
             x_start = self._predict_x_start_from_eps(x, t, eps)
             if clip_denoised:
                 x_start = x_start.clamp(-1.0, 1.0)
 
-            # 2. Get alpha_bar at current and previous timestep.
-            ab_t = _extract(self.alphas_cumprod, t, x.shape)
-            ab_prev = (
-                _extract(self.alphas_cumprod, t_prev, x.shape)
-                if t_prev is not None
-                else torch.ones_like(ab_t)
-            )
-
-            # 3. DDIM update with optional stochastic component.
+            # 2. DDIM update with optional stochastic component.
             sigma = eta * ((1 - ab_prev) / (1 - ab_t) * (1 - ab_t / ab_prev)).sqrt()
             dir_xt = (1 - ab_prev - sigma**2).clamp(min=0).sqrt() * eps
             noise = torch.randn_like(x) if eta > 0 else 0.0
